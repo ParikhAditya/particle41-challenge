@@ -1,0 +1,44 @@
+name: App CI/CD
+
+on:
+  push:
+    paths:
+      - 'app/**'
+  workflow_dispatch:
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Login to Amazon ECR
+        run: |
+          aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws configure set region ${{ secrets.AWS_REGION }}
+
+      - name: Get Short Commit SHA
+        run: echo "SHORT_SHA=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+
+      - name: Login to Amazon ECR
+        run: |
+          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | \
+          docker login --username AWS --password-stdin ${{ AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+
+      - name: Build Docker Image
+        run: |
+          docker build -t ${{ AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ ECR_REPOSITORY_NAME }}:${{ env.SHORT_SHA }} ./app
+
+      - name: Push Docker Image
+        run: |
+          docker push ${{ AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ ECR_REPOSITORY_NAME }}:${{ env.SHORT_SHA }}
+
+      - name: Output Image URI
+        run: echo "Pushed Image URI: ${{ AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ ECR_REPOSITORY_NAME }}:${{ env.SHORT_SHA }}"
+
+      - name: Update ECS Task Definition
+        run: |
+          aws ecs update-service --cluster ${{ ECS_CLUSTER_NAME }} --service ${{ ECS_SERVICE NAME }} --force-new-deployment
