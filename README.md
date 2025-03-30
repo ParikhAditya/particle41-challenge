@@ -1,8 +1,7 @@
 # Particle41 work assessment - Simple python app with FastAPI
 This repo contains the python code to run a server that returns the client's IP and server timestamp in a JSON response like so -
 ```
-timestamp	"2025-03-30 07:25:58.503544"
-ip	"169.254.169.254"
+{"timestamp":"2025-03-30 07:25:58.503544","ip":"115.69.242.254"}
 ```
 
 Stack used for development - 
